@@ -1,0 +1,14 @@
+.nft-page-container {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .nft-page-section {
+    flex: 1;
+    margin: 20px;
+  }
+  
+  .nft-page-title {
+    font-size: 24px;
+    margin-bottom: 10px;
+  }

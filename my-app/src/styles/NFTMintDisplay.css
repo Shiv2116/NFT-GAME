@@ -1,0 +1,19 @@
+.nft-mint-display-container {
+    margin: 20px;
+  }
+  
+  .nft-list-title {
+    font-size: 24px;
+    margin-bottom: 10px;
+  }
+  
+  .nft-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .nft-list-item {
+    font-size: 18px;
+    margin: 5px 0;
+  }
+  

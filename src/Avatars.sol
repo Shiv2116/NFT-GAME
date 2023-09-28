@@ -11,7 +11,7 @@ contract Avatars is ERC721, Ownable {
     AggregatorV3Interface public oracle; // Declare the Chainlink Oracle interface
 
     uint256 public mintPriceEth; // Minting price in ETH
-
+    uint256  public tokenId = 0;
     struct AvatarAttributes {
         uint256 level;
         uint256 strength;
@@ -21,37 +21,35 @@ contract Avatars is ERC721, Ownable {
     }
 
     mapping(uint256 => AvatarAttributes) public avatarAttributes;
+    mapping(address => uint256[]) private ownedNFTs;
+    mapping(uint256 => string) public tokenIPFSURIs;
+    event NFTLevelUp(uint256 tokenId, uint256 newLevel, uint256 newStrength, uint256 newAgility, uint256 newWisdom, uint256 newStamina);
 
     constructor() ERC721("Avatar", "AVTR") {
-        oracle = AggregatorV3Interface(0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e); // Initialize the Chainlink Oracle contract
-    
-    }
-
-    // Fetch the USD/ETH conversion rate from the Chainlink Oracle
-    function getEthToUsdPrice() public view returns (int256) {
-        (, int256 price, , , ) = oracle.latestRoundData();
-        return price;
-    }
-
-    // Calculate the minting price in ETH based on the current USD/ETH rate
-    function calculateMintPriceEth() public  returns (uint256) {
-        int256 ethToUsdPrice = getEthToUsdPrice();
-        require(ethToUsdPrice > 0, "Oracle price not available");
-
-        mintPriceEth = (20 * 1e18) / uint256(ethToUsdPrice); // 20 USD in wei
+        oracle = AggregatorV3Interface(0x1a81afB8146aeFfCFc5E50e8479e826E7D55b910); // Initialize the Chainlink Oracle contract
         
-        return mintPriceEth;
     }
-      function totalSupply() public view returns (uint256) {
+
+    function getPriceRate() public view returns (uint) {
+        (, int price,,,) = oracle.latestRoundData();
+        uint ethPriceInWei = uint(price);
+        uint usdInWei = 20 * 1e18; // Hardcoded 20 USD in wei
+        uint ethAmountInWei = usdInWei / ethPriceInWei;
+        return (ethAmountInWei * 100000)- 6000000000000000;
+    }
+
+    
+
+    
+      function totalSupply() internal view  returns (uint256) {
         return balanceOf(address(this));
     }
 
     // Mint a new Avatar
-    function mintAvatar() external payable {
-        uint price = calculateMintPriceEth();
-        require(msg.value >= price, "Insufficient ETH sent");
-
-        uint256 tokenId = totalSupply() + 1;
+    function mintAvatar(string memory ipfsCID) external payable {
+        uint price = getPriceRate();
+        require(msg.value>=price,"Not possible");
+        tokenId += 1;
         _mint(msg.sender, tokenId);
 
         // Initialize Avatar attributes
@@ -62,6 +60,8 @@ contract Avatars is ERC721, Ownable {
         attributes.wisdom = 10;
         attributes.stamina = 10;
         avatarAttributes[tokenId] = attributes;
+        ownedNFTs[msg.sender].push(tokenId);
+        tokenIPFSURIs[tokenId] = ipfsCID;
     }
 
     // Level up an Avatar
@@ -75,10 +75,19 @@ contract Avatars is ERC721, Ownable {
         attributes.agility += 5;
         attributes.wisdom += 5;
         attributes.stamina += 5;
+
+        emit NFTLevelUp(_tokenId, attributes.level, attributes.strength, attributes.agility, attributes.wisdom, attributes.stamina);
+    }
+     function getAllNFTs(address owner) external view returns (uint256[] memory) {
+        return ownedNFTs[owner];
+    }
+    function getAttributes(uint256 _tokenId) external view returns (AvatarAttributes memory) {
+        return avatarAttributes[_tokenId];
     }
 
     // Withdraw contract balance (only callable by the owner)
     function withdrawBalance() external onlyOwner {
         payable(owner()).transfer(address(this).balance);
     }
+
 }
